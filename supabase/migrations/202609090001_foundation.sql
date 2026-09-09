@@ -1,0 +1,70 @@
+-- Apply to Supabase Postgres. No service key is used by interactive application requests.
+create extension if not exists pgcrypto;
+create table public.organizations(id uuid primary key default gen_random_uuid(), name text not null check(length(name) between 1 and 200), created_at timestamptz not null default now());
+create table public.memberships(organization_id uuid not null references public.organizations on delete cascade,user_id uuid not null references auth.users on delete cascade,role text not null check(role in ('owner','administrator','estimator','project_manager','draftsperson','viewer')),primary key(organization_id,user_id));
+create function public.member_role(org uuid) returns text language sql stable security definer set search_path='' as $$select role from public.memberships where organization_id=org and user_id=(select auth.uid())$$;
+revoke all on function public.member_role(uuid) from public;
+grant execute on function public.member_role(uuid) to authenticated;
+create function public.can_edit(org uuid) returns boolean language sql stable security definer set search_path='' as $$select coalesce(public.member_role(org) in ('owner','administrator','estimator','project_manager'),false)$$;
+revoke all on function public.can_edit(uuid) from public;
+grant execute on function public.can_edit(uuid) to authenticated;
+alter table public.organizations enable row level security;
+alter table public.memberships enable row level security;
+create policy organization_read on public.organizations for select to authenticated using(public.member_role(id) is not null);
+create policy membership_read on public.memberships for select to authenticated using(public.member_role(organization_id) is not null);
+-- Membership mutations are reserved for audited RPCs; users cannot promote themselves.
+create function public.create_organization(organization_name text) returns uuid language plpgsql security definer set search_path='' as $$declare new_id uuid; begin
+ if auth.uid() is null then raise exception 'Authentication required';end if;
+ if length(trim(organization_name)) not between 1 and 200 then raise exception 'Invalid name';end if;
+ insert into public.organizations(name) values(trim(organization_name)) returning id into new_id;
+ insert into public.memberships values(new_id,auth.uid(),'owner');return new_id;end$$;
+revoke all on function public.create_organization(text) from public;
+grant execute on function public.create_organization(text) to authenticated;
+create table public.projects(id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations on delete cascade,data jsonb not null check(jsonb_typeof(data)='object'),revision integer not null default 0,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(organization_id,id));
+alter table public.projects enable row level security;
+create policy project_read on public.projects for select to authenticated using(public.member_role(organization_id) is not null);
+create policy project_insert on public.projects for insert to authenticated with check(public.can_edit(organization_id));
+create policy project_update on public.projects for update to authenticated using(public.can_edit(organization_id)) with check(public.can_edit(organization_id));
+create table public.audit_events(id bigint generated always as identity primary key,organization_id uuid not null references public.organizations,project_id uuid,actor uuid,action text not null,before_value jsonb,after_value jsonb,created_at timestamptz not null default now());
+alter table public.audit_events enable row level security;
+create policy audit_read on public.audit_events for select to authenticated using(public.member_role(organization_id) in ('owner','administrator'));
+create function public.audit_project() returns trigger language plpgsql security definer set search_path='' as $$begin
+ if TG_OP='UPDATE' then
+ if new.organization_id<>old.organization_id or new.id<>old.id then raise exception 'Project identity is immutable';end if;
+ if coalesce((new.data->>'revision')::integer,0)<>old.revision then raise exception 'Stale revision; reload before saving';end if;
+ if jsonb_array_length(coalesce(new.data->'proposals','[]'))<jsonb_array_length(coalesce(old.data->'proposals','[]')) then raise exception 'Issued versions cannot be removed';end if;
+ if exists(select 1 from jsonb_array_elements(coalesce(old.data->'proposals','[]')) with ordinality as v(value,n) where new.data->'proposals'->((n-1)::integer) is distinct from value) then raise exception 'Issued versions are immutable';end if;
+ new.revision=old.revision+1;
+ else new.revision=0;end if;
+ new.data=jsonb_set(new.data,'{revision}',to_jsonb(new.revision));new.updated_at=now();
+ insert into public.audit_events(organization_id,project_id,actor,action,before_value,after_value) values(new.organization_id,new.id,auth.uid(),TG_OP,case when TG_OP='UPDATE' then old.data else null end,new.data);
+ return new;end$$;
+create trigger project_audit before insert or update on public.projects for each row execute function public.audit_project();
+create table public.documents(id uuid primary key,organization_id uuid not null,project_id uuid not null,name text not null check(length(name)<=200),path text unique not null,version integer not null check(version>0),category text not null,status text not null,uploaded_by uuid not null default auth.uid() references auth.users,created_at timestamptz not null default now(),processing_error text,extraction jsonb,foreign key(organization_id,project_id) references public.projects(organization_id,id) on delete cascade,check(path=organization_id::text||'/'||project_id::text||'/'||id::text||'.pdf'));
+alter table public.documents enable row level security;
+create policy document_read on public.documents for select to authenticated using(public.member_role(organization_id) is not null);
+create policy document_insert on public.documents for insert to authenticated with check(public.can_edit(organization_id) and uploaded_by=auth.uid());
+create policy document_update on public.documents for update to authenticated using(public.can_edit(organization_id)) with check(public.can_edit(organization_id));
+create table public.processing_runs(id uuid primary key default gen_random_uuid(),organization_id uuid not null,project_id uuid not null,document_id uuid not null references public.documents,provider text not null,template_version text not null,status text not null,pages integer default 0,latency_ms integer default 0,estimated_cost numeric(14,4) default 0,created_at timestamptz default now(),foreign key(organization_id,project_id) references public.projects(organization_id,id));
+alter table public.processing_runs enable row level security;
+create policy run_read on public.processing_runs for select to authenticated using(public.member_role(organization_id) is not null);
+create policy run_write on public.processing_runs for insert to authenticated with check(public.can_edit(organization_id) and exists(select 1 from public.documents d where d.id=document_id and d.organization_id=processing_runs.organization_id and d.project_id=processing_runs.project_id));
+create table public.catalogs(id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations,name text not null,version integer not null default 1,kind text not null check(kind in ('material','hardware','labor','finish','assembly','settings')),data jsonb not null,unique(organization_id,name,version));
+alter table public.catalogs enable row level security;
+create policy catalog_read on public.catalogs for select to authenticated using(public.member_role(organization_id) is not null);
+create policy catalog_insert on public.catalogs for insert to authenticated with check(public.can_edit(organization_id));
+create policy catalog_update on public.catalogs for update to authenticated using(public.can_edit(organization_id)) with check(public.can_edit(organization_id));
+create table public.subscriptions(organization_id uuid primary key references public.organizations,customer_id text unique,subscription_id text unique,plan text not null default 'starter',status text not null default 'inactive',updated_at timestamptz not null default now());
+alter table public.subscriptions enable row level security;
+create policy billing_read on public.subscriptions for select to authenticated using(public.member_role(organization_id) in ('owner','administrator'));
+create table public.billing_events(id text primary key,received_at timestamptz not null default now());
+alter table public.billing_events enable row level security;
+-- Only the verified webhook's service role can write billing records.
+grant select on public.organizations,public.memberships,public.audit_events,public.subscriptions to authenticated;
+grant select,insert,update on public.projects,public.documents,public.catalogs to authenticated;
+grant select,insert on public.processing_runs to authenticated;
+grant all on public.subscriptions,public.billing_events to service_role;
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('bid-documents','bid-documents',false,20971520,array['application/pdf']);
+create policy private_document_read on storage.objects for select to authenticated using(bucket_id='bid-documents' and exists(select 1 from public.documents d where d.path=storage.objects.name and public.member_role(d.organization_id) is not null));
+create policy private_document_upload on storage.objects for insert to authenticated with check(bucket_id='bid-documents' and exists(select 1 from public.projects p where p.organization_id::text=(storage.foldername(name))[1] and p.id::text=(storage.foldername(name))[2] and public.can_edit(p.organization_id)));
+create policy private_document_cleanup on storage.objects for delete to authenticated using(bucket_id='bid-documents' and exists(select 1 from public.projects p where p.organization_id::text=(storage.foldername(name))[1] and p.id::text=(storage.foldername(name))[2] and public.can_edit(p.organization_id)));

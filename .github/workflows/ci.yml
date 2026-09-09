@@ -1,0 +1,26 @@
+name: Validate BlueprintBid
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker run --name blueprintbid-test-db -e POSTGRES_HOST_AUTH_METHOD=trust -d postgres:17-alpine
+      - run: timeout 30 bash -c 'until docker exec blueprintbid-test-db pg_isready -U postgres; do sleep 1; done'
+      - run: bash scripts/test-db.sh

@@ -1,0 +1,46 @@
+{
+  "name": "blueprintbid",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "format": "prettier --write src tests docs README.md CONTRIBUTING.md SECURITY.md *.ts *.mjs *.json",
+    "test:e2e": "playwright test",
+    "test:db": "bash scripts/test-db.sh",
+    "seed:fixture": "node scripts/synthetic-pdf.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "decimal.js": "^10.6.0",
+    "next": "^16.3.4",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.3.289",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "stripe": "^22.6.1",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.5.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.4",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

@@ -1,0 +1,573 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "commercial": {
+      "default": [],
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "Allowance",
+              "Add alternate",
+              "Deduct alternate",
+              "Unit price"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "quantity": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "unitCost": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "description",
+          "quantity",
+          "unit",
+          "unitCost"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "vendorQuotes": {
+      "default": [],
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "scope": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "base": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          },
+          "freight": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          },
+          "tax": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          },
+          "exclusions": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "expires": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "leadDays": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Requested",
+              "Received",
+              "Selected",
+              "Expired"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "vendor",
+          "scope",
+          "base",
+          "freight",
+          "tax",
+          "exclusions",
+          "expires",
+          "leadDays",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "riskRegister": {
+      "default": [],
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "likelihood": {
+            "type": "string",
+            "enum": [
+              "Low",
+              "Medium",
+              "High"
+            ]
+          },
+          "impact": {
+            "type": "string",
+            "enum": [
+              "Low",
+              "Medium",
+              "High"
+            ]
+          },
+          "exposure": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "treatment": {
+            "type": "string",
+            "enum": [
+              "Clarification",
+              "RFI",
+              "Assumption",
+              "Exclusion",
+              "Allowance",
+              "Contingency",
+              "Firm quote",
+              "Bid / no-bid"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Open",
+              "Resolved",
+              "Accepted"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "source",
+          "likelihood",
+          "impact",
+          "exposure",
+          "owner",
+          "treatment",
+          "status",
+          "resolution"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "revision": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "id": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "client": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "address": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "dueDate": {
+      "type": "string",
+      "maxLength": 30
+    },
+    "company": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Estimating",
+        "Issued",
+        "Awarded"
+      ]
+    },
+    "scope": {
+      "maxItems": 300,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "room": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "quantity": {
+            "type": "string",
+            "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 30
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Needs review",
+              "Confirmed",
+              "Missing information",
+              "Conflict detected",
+              "Excluded"
+            ]
+          },
+          "responsibility": {
+            "type": "string",
+            "enum": [
+              "Included by us",
+              "Furnished by others / installed by us",
+              "Coordinated only",
+              "Excluded",
+              "Unknown"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "components": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "Material",
+                    "Hardware",
+                    "Labor",
+                    "Finish",
+                    "Subcontract",
+                    "Delivery",
+                    "Installation",
+                    "Engineering"
+                  ]
+                },
+                "quantity": {
+                  "type": "string",
+                  "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 30
+                },
+                "unitCost": {
+                  "type": "string",
+                  "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+                },
+                "waste": {
+                  "type": "string",
+                  "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+                },
+                "taxable": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "category",
+                "quantity",
+                "unit",
+                "unitCost",
+                "waste",
+                "taxable"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "room",
+          "quantity",
+          "unit",
+          "status",
+          "responsibility",
+          "source",
+          "evidence",
+          "notes",
+          "components"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "markup",
+            "margin"
+          ]
+        },
+        "rate": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "overhead": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "contingency": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "tax": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        }
+      },
+      "required": [
+        "mode",
+        "rate",
+        "overhead",
+        "contingency",
+        "tax"
+      ],
+      "additionalProperties": false
+    },
+    "qualifications": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "exclusions": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "terms": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "risks": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "logistics": {
+      "type": "object",
+      "properties": {
+        "trips": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "miles": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "costPerMile": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "driverHours": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "driverRate": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "outsideQuote": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "installHours": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "installRate": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "crew": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "hoursPerDay": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        },
+        "actualCost": {
+          "type": "string",
+          "pattern": "^\\d{1,9}(\\.\\d{1,4})?$"
+        }
+      },
+      "required": [
+        "trips",
+        "miles",
+        "costPerMile",
+        "driverHours",
+        "driverRate",
+        "outsideQuote",
+        "installHours",
+        "installRate",
+        "crew",
+        "hoursPerDay",
+        "actualCost"
+      ],
+      "additionalProperties": false
+    },
+    "audit": {
+      "maxItems": 10000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "after": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "actor",
+          "action",
+          "before",
+          "after"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "proposals": {
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "issuedAt": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "issuedAt",
+          "snapshot"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "commercial",
+    "vendorQuotes",
+    "riskRegister",
+    "revision",
+    "id",
+    "name",
+    "client",
+    "address",
+    "dueDate",
+    "company",
+    "status",
+    "scope",
+    "pricing",
+    "qualifications",
+    "exclusions",
+    "terms",
+    "risks",
+    "logistics",
+    "audit",
+    "proposals"
+  ],
+  "additionalProperties": false
+}
