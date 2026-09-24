@@ -6,6 +6,12 @@ export type VisualPage = {
   model: string;
   promptVersion: string;
   responseId: string | null;
+  focus?: {
+    room: string;
+    detail: string;
+    source: string;
+    evidenceContext?: string;
+  } | null;
   result: z.infer<typeof visualResultSchema>;
 };
 export function VisualReview({
@@ -22,12 +28,29 @@ export function VisualReview({
   return (
     <>
       {pages.map((p) => (
-        <section key={p.page} className="card" style={{ marginTop: 20 }}>
+        <section
+          key={
+            p.responseId ||
+            `${p.page}-${p.focus?.room || ""}-${p.focus?.detail || ""}`
+          }
+          className="card"
+          style={{ marginTop: 20 }}
+        >
           <h3>
             Visual review · page {p.page} ·{" "}
             {p.result.sheet || "Sheet label unclear"}
           </h3>
           <p>{p.result.summary}</p>
+          {p.focus?.evidenceContext && (
+            <details>
+              <summary>
+                Linked source evidence supplied for this analysis
+              </summary>
+              <p style={{ whiteSpace: "pre-wrap" }}>
+                {p.focus.evidenceContext}
+              </p>
+            </details>
+          )}
           <p className="muted">
             Model: {p.model} · {p.promptVersion} · This page only; all findings
             need verification.
@@ -49,6 +72,11 @@ export function VisualReview({
                 {item.quantityBasis})
               </p>
               <p>
+                Physical count: {item.physicalCount ?? "Unknown"}
+                <br />
+                Furnished by: {item.furnishing ?? "Unknown"} · Installed by:{" "}
+                {item.installation ?? "Unknown"}
+                <br />
                 Dimensions: {item.dimensions || "Not established"}
                 <br />
                 Materials: {item.materials || "Not established"}

@@ -24,3 +24,7 @@ Assembly templates are immutable versions. Applying a template copies its compon
 Issuance requires included, confirmed, priced scope, known responsibilities, terms and addressed high-impact risks. Existing issued snapshots cannot be edited or removed in hosted Postgres. Currency is USD only. Customer PDF text currently replaces non-ASCII characters with `?`; add an embedded Unicode font before multilingual proposals. Automated tests cover the stated calculations and boundaries.
 
 Hosted issuance now also runs in PostgreSQL: validated inputs produce an authoritative allowlisted snapshot using `numeric` arithmetic. Parity fixtures compare the full JSON projection against decimal.js, including fractional quantities, margin, tax and commercial items. Save each issued hosted version before creating another; the UI prevents multiple pending versions.
+
+### Linear-foot rounding
+
+Program-generated LF scope quantities use nearest 0.5 ft with exact ties rounded upward. Visual imports retain original quantity and printed dimensions in evidence/notes. Manual LF rows offer an explicit rounding action and remain overridable; historical estimator quantities are not silently rewritten. Round the supplied total footage without multiplying by physical count. This rule does not apply to fabrication dimensions, EA, SF, or prices.

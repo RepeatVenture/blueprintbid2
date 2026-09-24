@@ -6,7 +6,7 @@ Set server-only OPENAI_API_KEY, OPENAI_VISION_MODEL and VISION_ENABLED=true afte
 
 Structured candidates include quantity basis, printed dimensions, materials, finishes, hardware, evidence and uncertainty. Unsupported quantities are cleared. Incomplete, refused and invalid responses fail without accepting candidates. Existing results survive failed retries. Source page, model, prompt version and response ID accompany imported scope. Imported candidates require estimator review and carry no automatic pricing.
 
-Processing is synchronous with a 45-second provider timeout and a two-minute document lease. There is no durable queue, full-set reconciliation, verified scale measurement or source-region highlighting. Model confidence is subjective. No human-equivalent accuracy claim has been established.
+Processing is synchronous with a 45-second provider timeout (120 seconds for explicitly configured GPT-5.4) and a five-minute document lease. There is no durable queue, full-set reconciliation, verified scale measurement or source-region highlighting. Model confidence is subjective. No human-equivalent accuracy claim has been established.
 
 Requests specify store:false; this is not a zero-retention guarantee. Owner approval of provider data terms and spending is required before production customer uploads. Do not log keys or document content.
 

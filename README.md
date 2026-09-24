@@ -103,7 +103,7 @@ npm run start
 
 Stop any development/preview server before browser tests so they use the production build. Playwright starts its own server. `npm run check` combines type check, lint, unit tests and production build. Browser and database suites are separate. `npm run format` formats code/docs. The build was successfully tested outside the execution sandbox; sandboxed Next TypeScript child processes failed to return parsable output. Do not disable type checks to bypass that issue.
 
-There is no separate worker command yet. Hosted native processing runs in the API request. A crashed claim becomes retryable after two minutes.
+There is no separate worker command yet. Hosted native processing runs in the API request. A crashed claim becomes retryable after five minutes.
 
 ## C. External accounts and settings
 
@@ -210,7 +210,7 @@ Native text extraction uses local PDF.js and needs no paid provider. Upload PDF,
 
 Run `npm run seed:fixture`, create a hosted test project and upload the generated PDF. Inventory must first show uploaded/not processed. Click Extract native text. Expect a page-1 candidate and a blank-page OCR warning. Create a scope candidate, open the original source PDF, verify evidence, enter quantities/components and confirm responsibility manually. Paste-page-text review is also available in the demo.
 
-Native processing records track provider, template version, pages, latency and zero external provider cost. Visual processing records track model, prompt version, response ID, token usage and evidence; monetary cost remains unknown rather than being reported as zero. Hosting compute and storage still cost resources. A failed request can be retried; a stale Processing lease expires after two minutes. No automatic paid fallback or fake success is used. Read [docs/document-processing.md](docs/document-processing.md) for visual setup and evaluation. Malware scanning, durable workers, broader tenant usage budgets and accuracy evaluation are required before arbitrary customer documents.
+Native processing records track provider, template version, pages, latency and zero external provider cost. Visual processing records track model, prompt version, response ID, token usage and evidence; monetary cost remains unknown rather than being reported as zero. Hosting compute and storage still cost resources. A failed request can be retried; a stale Processing lease expires after five minutes. No automatic paid fallback or fake success is used. Read [docs/document-processing.md](docs/document-processing.md) for visual setup and evaluation. Malware scanning, durable workers, broader tenant usage budgets and accuracy evaluation are required before arbitrary customer documents.
 
 ## H. Production deployment
 
@@ -275,7 +275,7 @@ Back up database and storage separately, test restoration, keep the previous dep
 | Upload rejected                                     | PDF extension/MIME/signature, 20 MiB limit, editor role, private bucket            | Use a valid smaller PDF and correct permissions; inspect safe server logs                                              |
 | Source download unavailable                         | Session, document row, path, bucket policies                                       | Reauthenticate and verify same-tenant metadata/object existence                                                        |
 | No text candidates / OCR warning                    | Is PDF scanned? Does the page actually contain selectable text?                    | Use configured visual analysis or review the original manually; never accept blank output as complete scope            |
-| Processing stuck / failed                           | Wait two minutes for lease, check 100-page limit and encrypted/malformed file      | Retry or split PDF; repeated failures need investigation, not repeated paid processing                                 |
+| Processing stuck / failed                           | Wait five minutes for lease, check 100-page limit and encrypted/malformed file     | Retry or split PDF; repeated failures need investigation, not repeated paid processing                                 |
 | Incorrect total                                     | Per-scope quantities, duplicate operations, waste, markup versus margin, tax basis | Reconcile components and formulas in docs/estimating-model.md                                                          |
 | Proposal cannot issue                               | Review warnings, unknown responsibility, missing costs/terms, unresolved risks     | Confirm scope and document risk resolution; do not remove checks                                                       |
 | PDF missing symbols                                 | Standard PDF font is ASCII                                                         | Use plain text for evaluation; Unicode font support remains required                                                   |
@@ -306,3 +306,44 @@ Apply migration 009 before enabling visual analysis. The hosted Documents panel 
 Candidates remain Needs review with unknown responsibility and no price components. An estimator must verify evidence and quantities against the source before confirmation. Single-page analysis cannot establish complete project scope or deduplicate across sheets. Whole-set orchestration, source-region overlays and calibrated accuracy remain unfinished.
 
 Offline visual contract tests cover page isolation, structured output, provenance, unsupported quantities and failure handling. They do not measure recognition accuracy. Owner action: run an authorized paid staging evaluation using consented plans/images and independently labeled scope, counts, dimensions and materials; record omissions, false positives, quantity error, latency and actual cost before claiming production accuracy.
+
+### Local whole-set indexing and evaluation
+
+For large pilot PDFs, use the local indexer while hosted upload/background-job support is unfinished:
+
+```bash
+npm run documents:index -- TestMaterials/evaluation/index "TestMaterials/25 08-18 CD_s - Drawings.pdf" "TestMaterials/25 08-18 CD_s - Specifications.pdf"
+node scripts/index-report.mjs TestMaterials/evaluation/index
+```
+
+Open `TestMaterials/evaluation/index/review.html` in a browser to search native page text by room, sheet or finish. This self-contained report makes no external requests. Keep it private: it contains extracted project text. TestMaterials and derived artifacts are excluded from Git; back them up through an owner-controlled private location if required.
+
+The local indexer processes one PDF/page at a time, accepts up to 150 MiB and 2,000 pages per PDF, writes page checkpoints and resumes unchanged documents using SHA-256 identities. It records reference mentions, not verified sheet identities or scope. Completion means native indexing only. PDF parsing still uses local process memory; this tool is not an isolated production worker. Hosted upload limits remain 20 MiB and native extraction remains limited to 100 pages.
+
+Pass drawings/specifications as inputs and keep the reference scope sheet separate. `src/lib/evaluation.ts` defines reviewed reference rows with distinct physical count, estimating quantity/unit and printed dimensions. Run `node scripts/score-evaluation.mjs REVIEWED_CASES.json` on explicitly adjudicated matches. Missing and duplicate items and count/quantity/unit/finish mismatches are reported separately. This partial scorer does not establish overall accuracy or automatically identify matching scope items.
+
+Owner-only actions remain: configure provider credentials and spending controls for live visual evaluation; resolve reference ambiguities and revision alignment with the estimator. Local indexing requires neither an API key nor a paid provider call. Additional engineering remains for hosted durable jobs, visual cross-sheet reconciliation, source-region overlays and complete benchmark scoring.
+
+### Focused room review
+
+The visual analysis screen now accepts optional room and sheet/detail focus. For dense sheets, upload a legible PNG/JPEG crop and retain its original document/page/detail reference. The current UI does not automatically crop or reconcile the full drawing set.
+
+The revised structured output separates physical count, total estimating quantity, furnishing and installation. Linear-foot totals are computed in decimal arithmetic from the model's explicit inch segments, then rounded to the nearest half foot when transferred into scope. Incorrectly read or assigned dimension segments can still produce wrong quantities; estimator review remains mandatory. Unsupported LF quantities are cleared. Manual overrides and original dimension evidence remain available.
+
+Apply migration `202609240010_processing_prompt_version.sql` so completed processing runs can record the actual prompt version. Older saved results remain readable with unknown values for newly added fields. The reference scope is excluded from live model input.
+
+Generate a private side-by-side evidence report from a completed local test:
+
+```bash
+node scripts/visual-report.mjs TestMaterials/evaluation/live/focused-3.json TestMaterials/evaluation/live/staff-lounge-detail-8.png
+```
+
+This report displays model proposals, not approved scope or a certified accuracy score. Local test output remains private and Git-ignored. Live evaluation is limited to the explicit request/budget authorization; global vision enablement remains a separate setting.
+
+For a deliberate GPT-5.4 evaluation, set OPENAI_VISION_MODEL=gpt-5.4. The analyzer uses original image detail and low reasoning for that exact model ID, with a 120-second provider timeout; the hosted route allows 180 seconds and requires a compatible host. Migration 010 extends the processing lease to five minutes. This is an explicit model choice, not an automatic paid fallback. The existing local environment model is not changed by test comparisons.
+
+### Live pilot result and limits
+
+The first focused-room iteration now produces separate main cabinet rows and the correct 82-inch countertop chain, calculated as 6.8333 LF and rounded by code to 7 LF. This does not establish complete takeoff accuracy: one cabinet height remains wrong, some panel/filler/hardware scope is missing, and the locker enclosure and drawer detail remain conflicting. The model's backsplash SF quantity has not been validated. Manual crops and curated linked evidence were required. The supplied scope was withheld from the extraction input, but this is development data rather than a blind benchmark.
+
+The owner-authorized five-request batch is complete (estimated model usage $0.3218405); new paid runs require a new applicable authorization. Global visual processing remains disabled and the owner's configured model remains unchanged. Linked source evidence can be entered in the hosted Documents panel and remains visible with results; changing it clears consent. Supabase configuration is still required for the hosted workflow.

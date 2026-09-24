@@ -1,9 +1,9 @@
 import { authenticated, readJson, sameOrigin } from "@/lib/server";
-import { analyzeVisual, visionConfig } from "@/lib/vision";
+import { analyzeVisual, visionConfig, focusSchema } from "@/lib/vision";
 import { validateDocument } from "@/lib/documents";
 import { z } from "zod";
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 180;
 export function GET() {
   return Response.json(
     {
@@ -23,13 +23,14 @@ export async function POST(req: Request) {
     sameOrigin(req);
     const { db } = await authenticated();
     const config = visionConfig();
-    const { id, page, consent } = z
+    const { id, page, consent, focus } = z
       .object({
         id: z.string().uuid(),
         page: z.number().int().min(1).max(2000),
         consent: z.literal(true),
+        focus: focusSchema.optional(),
       })
-      .parse(await readJson(req, 1000));
+      .parse(await readJson(req, 20000));
     if (!consent) throw new Error("Consent required");
     const { data: d, error } = await db
       .from("documents")
@@ -53,18 +54,34 @@ export async function POST(req: Request) {
     if (budget || !reservation)
       throw new Error("Daily visual analysis limit or permissions");
     runId = reservation;
-    const result = await analyzeVisual(bytes, d.mime_type, page, config);
+    const result = await analyzeVisual(
+      bytes,
+      d.mime_type,
+      page,
+      config,
+      fetch,
+      focus,
+    );
     const history = Array.isArray(d.extraction?.visualPages)
       ? d.extraction.visualPages
       : [];
     const visualPages = [
-      ...history.filter((r: { page: number }) => r.page !== page),
+      ...history.filter(
+        (r: {
+          page: number;
+          focus?: { room?: string; detail?: string } | null;
+        }) =>
+          r.page !== page ||
+          (r.focus?.room || "") !== (focus?.room || "") ||
+          (r.focus?.detail || "") !== (focus?.detail || ""),
+      ),
       { page, ...result, processedAt: new Date().toISOString() },
     ];
     const { error: record } = await db
       .from("processing_runs")
       .update({
         status: "Completed — needs review",
+        template_version: result.promptVersion,
         latency_ms: Date.now() - started,
         details: { page, ...result },
       })

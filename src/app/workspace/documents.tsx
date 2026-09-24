@@ -27,6 +27,9 @@ export function DocumentPanel({
 }) {
   const [visionEnabled, setVisionEnabled] = useState(false),
     [visionPage, setVisionPage] = useState("1"),
+    [focusRoom, setFocusRoom] = useState(""),
+    [focusDetail, setFocusDetail] = useState(""),
+    [sourceContext, setSourceContext] = useState(""),
     [consent, setConsent] = useState(false);
   useEffect(() => {
     void fetch("/api/documents/vision")
@@ -64,7 +67,7 @@ export function DocumentPanel({
   }, [mode, projectId]);
   async function upload(form: FormData) {
     setBusy(true);
-    setMessage("Uploading PDF…");
+    setMessage("Uploading document…");
     try {
       form.set("projectId", projectId);
       form.set("organizationId", organizationId || "");
@@ -90,7 +93,19 @@ export function DocumentPanel({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            visual ? { id, page: Number(visionPage), consent } : { id },
+            visual
+              ? {
+                  id,
+                  page: Number(visionPage),
+                  consent,
+                  focus: {
+                    room: focusRoom,
+                    detail: focusDetail,
+                    source: "Selected document",
+                    evidenceContext: sourceContext,
+                  },
+                }
+              : { id },
           ),
         },
       );
@@ -164,6 +179,34 @@ export function DocumentPanel({
         <p role="status">{message}</p>
         <div className="card">
           <h3>Visual drawing analysis</h3>
+          <label>
+            Room to review (optional)
+            <input
+              maxLength={120}
+              value={focusRoom}
+              onChange={(e) => setFocusRoom(e.target.value)}
+            />
+          </label>
+          <label>
+            Sheet / detail to review (optional)
+            <input
+              maxLength={120}
+              value={focusDetail}
+              onChange={(e) => setFocusDetail(e.target.value)}
+            />
+          </label>
+          <label>
+            Linked drawing/specification evidence (optional)
+            <textarea
+              maxLength={16000}
+              value={sourceContext}
+              onChange={(e) => {
+                setSourceContext(e.target.value);
+                setConsent(false);
+              }}
+              placeholder="Include document, page and detail references with each excerpt. Keep reference takeoff answers out of extraction inputs."
+            />
+          </label>
           <p>
             {visionEnabled
               ? "Vision provider configured. Each analysis sends one selected page/image to OpenAI and may incur API charges. Limit: 25 requests per organization per UTC day."
@@ -185,8 +228,8 @@ export function DocumentPanel({
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
             />
-            I authorize sending this page/image to the configured provider for
-            paid visual analysis.
+            I authorize sending this page/image and the linked evidence entered
+            above to the configured provider for paid visual analysis.
           </label>
         </div>
         {docs.map((d) => (

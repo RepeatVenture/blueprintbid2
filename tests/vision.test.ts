@@ -10,6 +10,10 @@ const item = {
   quantity: "2",
   unit: "EA",
   quantityBasis: "visually counted",
+  lengthSegmentsInches: null,
+  physicalCount: "2",
+  furnishing: "Unknown",
+  installation: "Unknown",
   dimensions: "",
   materials: "",
   finish: "",
@@ -112,4 +116,39 @@ describe("visual analysis contract", () => {
       ),
     ).rejects.toThrow();
   });
+});
+
+it("computes footage from supported segments, not model arithmetic", async () => {
+  const output = result({
+    ...item,
+    quantity: "99",
+    unit: "LF",
+    quantityBasis: "explicit dimension or schedule",
+    lengthSegmentsInches: ["18", "24"],
+  } as unknown as typeof item);
+  const actual = await analyzeVisual(
+    new Uint8Array(),
+    "image/png",
+    1,
+    config,
+    transport(output),
+  );
+  expect(actual.result.items[0].quantity).toBe("3.5");
+});
+it("clears LF when dimension evidence is absent", async () => {
+  const output = result({
+    ...item,
+    quantity: "20",
+    unit: "LF",
+    quantityBasis: "explicit dimension or schedule",
+  });
+  const actual = await analyzeVisual(
+    new Uint8Array(),
+    "image/png",
+    1,
+    config,
+    transport(output),
+  );
+  expect(actual.result.items[0].quantity).toBeNull();
+  expect(actual.result.items[0].unit).toBeNull();
 });

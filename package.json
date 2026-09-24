@@ -13,7 +13,8 @@
     "format": "prettier --write src tests docs README.md CONTRIBUTING.md SECURITY.md *.ts *.mjs *.json",
     "test:e2e": "playwright test",
     "test:db": "bash scripts/test-db.sh",
-    "seed:fixture": "node scripts/synthetic-pdf.mjs"
+    "seed:fixture": "node scripts/synthetic-pdf.mjs",
+    "documents:index": "node scripts/index-documents.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

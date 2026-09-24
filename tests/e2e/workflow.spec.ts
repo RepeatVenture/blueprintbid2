@@ -90,3 +90,17 @@ test("commercial review and evidence create reviewable scope", async ({
     page.getByRole("combobox", { name: "Review status" }),
   ).toHaveValue("Needs review");
 });
+
+test("changing linked evidence requires renewed visual-processing consent", async ({
+  page,
+}) => {
+  await page.goto("/demo");
+  await page.getByRole("tab", { name: "Documents", exact: true }).click();
+  const consent = page.getByRole("checkbox", { name: /I authorize sending/ });
+  await consent.check();
+  await page
+    .getByLabel("Linked drawing/specification evidence (optional)")
+    .fill("Synthetic specification page 2: self-closing hinges.");
+  await expect(consent).not.toBeChecked();
+  await expect(page.getByLabel("Room to review (optional)")).toBeVisible();
+});

@@ -6,3 +6,5 @@ coverage/
 *.tsbuildinfo
 playwright-report/
 test-results/
+# Private pilot documents and derived evaluation artifacts
+TestMaterials/

@@ -1,4 +1,5 @@
 "use client";
+import { roundLinearFeet } from "@/lib/quantities";
 import { CommercialPanel } from "./commercial";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -530,6 +531,19 @@ export default function Workspace({
                       value={active.unit}
                       onChange={(v) => changeScope(active.id, { unit: v })}
                     />
+                    {active.unit === "LF" && (
+                      <button
+                        type="button"
+                        disabled={!/^\d+(\.\d+)?$/.test(active.quantity)}
+                        onClick={() =>
+                          changeScope(active.id, {
+                            quantity: roundLinearFeet(active.quantity),
+                          })
+                        }
+                      >
+                        Round quantity to nearest 0.5 ft
+                      </button>
+                    )}
                     <label>
                       Review status
                       <select
@@ -833,10 +847,13 @@ export default function Workspace({
                   ...(visual
                     ? {
                         room: visual.room,
-                        quantity: visual.quantity || "0",
+                        quantity:
+                          visual.quantity && visual.unit === "LF"
+                            ? roundLinearFeet(visual.quantity)
+                            : visual.quantity || "0",
                         unit: visual.unit || "EA",
                         notes:
-                          `Proposed by visual model. Quantity basis: ${visual.quantityBasis}. Dimensions: ${visual.dimensions}. Materials: ${visual.materials}. Finish: ${visual.finish}. Hardware: ${visual.hardware}. Review: ${visual.uncertainties.join("; ")}`.slice(
+                          `Proposed by visual model. Physical count: ${visual.physicalCount ?? "unknown"}. Furnished by: ${visual.furnishing ?? "Unknown"}. Installed by: ${visual.installation ?? "Unknown"}. Original quantity: ${visual.quantity ?? "unknown"} ${visual.unit ?? ""}. LF estimating quantities rounded to nearest 0.5 ft; midpoint rounds up. Quantity basis: ${visual.quantityBasis}. Dimensions: ${visual.dimensions}. Materials: ${visual.materials}. Finish: ${visual.finish}. Hardware: ${visual.hardware}. Review: ${visual.uncertainties.join("; ")}`.slice(
                             0,
                             2000,
                           ),
